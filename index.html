@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>数字边疆 · 网安定向赛（完整版）</title>
+    <style>
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #0a0e27;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; color: #e5e7eb;
+        }
+        .phone-frame {
+            width: 100%; max-width: 450px; height: 100vh;
+            background: #11152f; box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; overflow: hidden;
+            position: relative;
+        }
+        .status-bar { font-size: 0.7rem; color: #aaa; padding: 5px 15px; background: #0b0f1a; display: flex; justify-content: space-between; }
+        .header {
+            padding: 20px; background: linear-gradient(135deg, #1e2a5e, #162349);
+            text-align: center; border-bottom: 2px solid #2a3a7a;
+        }
+        .header h2 { margin: 0; color: #a5d6ff; font-size: 1.5rem; }
+        .header .sub { font-size: 0.8rem; color: #7b8bbd; margin-top: 4px; }
+        .scene {
+            flex: 1; padding: 15px; overflow-y: auto; display: flex;
+            flex-direction: column; align-items: center; justify-content: flex-start;
+        }
+        .message-bubble {
+            background: #1e2d5c; padding: 15px; border-radius: 15px 15px 15px 0;
+            width: 90%; margin-bottom: 20px; border: 1px solid #3a4a8a;
+            font-size: 0.9rem; line-height: 1.5;
+        }
+        .btn {
+            background: #2b4a7c; color: white; border: none;
+            padding: 12px 16px; border-radius: 30px; font-size: 0.9rem;
+            margin: 6px 0; cursor: pointer; transition: 0.2s;
+            font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            width: 100%; text-align: left; display: flex; align-items: center; gap: 8px;
+        }
+        .btn:active { background: #4a7acc; transform: scale(0.98); }
+        .btn-primary { background: #e63946; justify-content: center; font-size: 1rem; }
+        .btn-success { background: #2ecc71; justify-content: center; }
+        .btn:disabled { opacity: 0.7; cursor: default; background: #2ecc71 !important; color: white; }
+        .card {
+            width: 100%; background: #1a2340; border-radius: 12px;
+            padding: 15px; margin: 10px 0; border: 1px solid #2a3a7a;
+        }
+        .card h3 { color: #a5d6ff; margin: 0 0 10px; font-size: 1rem; }
+        .feedback {
+            padding: 12px; background: #0e1430; border-radius: 10px;
+            margin-top: 15px; width: 100%; text-align: center; color: #ccc; min-height: 40px;
+        }
+        .success-text { color: #2ecc71; font-weight: bold; }
+        .fail-text { color: #e74c3c; }
+        .highlight { color: #ffd966; font-weight: bold; }
+        .nav-bottom { display: flex; justify-content: space-around; padding: 10px; background: #162349; border-top: 1px solid #2a3a7a; }
+        .nav-item { color: #7b8bbd; font-size: 0.75rem; }
+        .nav-item.active { color: #ffd966; }
+        .progress-bar {
+            width: 100%; height: 6px; background: #1a2340; border-radius: 3px; margin: 10px 0;
+        }
+        .progress-fill { height: 100%; background: #2ecc71; border-radius: 3px; width: 0%; transition: 0.3s; }
+        .tag { display: inline-block; padding: 4px 10px; border-radius: 20px; background: #2a3a7a; font-size: 0.7rem; margin: 2px; }
+        .tag.active { background: #e63946; }
+        hr { border-color: #2a3a7a; }
+        ol { padding-left: 20px; margin: 5px 0; color: #ccc; }
+        li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="status-bar"><span>📶 9:41 AM</span><span>🔋 100%</span></div>
+        <div class="header">
+            <h2>🛡️ 数字边疆</h2>
+            <div class="sub" id="level-title">第一关 · 无形的窃密者</div>
+        </div>
+
+        <div class="scene" id="scene"></div>
+
+        <div class="nav-bottom">
+            <div class="nav-item active">🏠 任务</div>
+            <div class="nav-item">🗺️ 地图</div>
+            <div class="nav-item">🏆 团队</div>
+        </div>
+    </div>
+
+    <script>
+        const scene = document.getElementById('scene');
+        const levelTitle = document.getElementById('level-title');
+
+        // 全局状态
+        let currentLevel = 1; // 1~4
+        let foundDefects = 0;
+        const totalDefects = 3;
+        let foundItems = { domain: false, grammar: false, urgent: false };
+
+        // ---- 关卡切换 ----
+        function goToLevel(level) {
+            currentLevel = level;
+            switch(level) {
+                case 1: renderLevel1Intro(); break;
+                case 2: renderLevel2Intro(); break;
+                case 3: renderLevel3Intro(); break;
+                case 4: renderLevel4Intro(); break;
+                case 5: renderFinal(); break; // 全部通关
+            }
+        }
+
+        // ==================== 第一关：无形的窃密者 ====================
+        function renderLevel1Intro() {
+            levelTitle.innerText = '第一关 · 无形的窃密者';
+            scene.innerHTML = `
+                <div style="width:100%; text-align:center;">
+                    <div style="font-size:3rem;">📧</div>
+                    <div class="message-bubble">
+                        <p><b>系统：</b>你收到一封“教务处”邮件，主题：<b>“2025学年国家奖学金最终公示名单”</b>。</p>
+                        <p>邮件要求<b>“立即点击链接核实学号，否则取消资格”</b>。</p>
+                        <p class="highlight">任务：找出3个可疑点，识别钓鱼邮件。</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="renderLevel1Puzzle()">🔍 开始检查邮件</button>
+                </div>
+            `;
+        }
+
+        function renderLevel1Puzzle() {
+            foundDefects = 0;
+            foundItems = { domain: false, grammar: false, urgent: false };
+            scene.innerHTML = `
+                <div style="width:100%;">
+                    <div class="card" style="background:#f0f4ff; color:#111;">
+                        <p><strong>发件人：</strong>教务处 &lt;admin@scholarship-verify.cn&gt;</p>
+                        <p><strong>主题：</strong>【紧急通知】奖学金名单确认</p>
+                        <hr>
+                        <p>同学你好，</p>
+                        <p>经审核，你已进入本学年国家奖学金候选名单。请于今日18:00前<a href="#">点击此链接</a>录入学号和身份证号，逾期视为放弃。</p>
+                        <p>—— 教务处</p>
+                    </div>
+                    <p class="highlight" style="text-align:center;">👇 选择可疑点：</p>
+                    <div id="defect-buttons" style="display:flex; flex-direction:column; gap:8px;">
+                        <button class="btn" onclick="checkDefect('domain')" id="btn-domain">🧐 发件人域名可疑 (scholarship-verify.cn)</button>
+                        <button class="btn" onclick="checkDefect('grammar')" id="btn-grammar">🧐 索要学号身份证，措辞不严谨</button>
+                        <button class="btn" onclick="checkDefect('urgent')" id="btn-urgent">🧐 “逾期视为放弃”制造紧迫感</button>
+                        <button class="btn" onclick="checkDefect('link')" id="btn-link" style="opacity:0.5;">🤔 链接地址可疑</button>
+                    </div>
+                    <div id="feedback-area" class="feedback">🔍 点击按钮指出疑点…</div>
+                </div>
+            `;
+        }
+
+        function checkDefect(type) {
+            if (currentLevel !== 1) return;
+            const feedbackDiv = document.getElementById('feedback-area');
+            let msg = ''; let correct = false;
+            if (type === 'domain' && !foundItems.domain) {
+                msg = '✅ <b>域名可疑！</b> 学校域名多为 .edu.cn，非伪造域名。';
+                correct = true; foundItems.domain = true;
+                let btn = document.getElementById('btn-domain'); btn.style.background='#2ecc71'; btn.disabled=true; btn.innerHTML='✅ 已确认：域名可疑';
+            } else if (type === 'grammar' && !foundItems.grammar) {
+                msg = '✅ <b>索要敏感信息！</b> 正规通知不通过链接收集身份证号。';
+                correct = true; foundItems.grammar = true;
+                let btn = document.getElementById('btn-grammar'); btn.style.background='#2ecc71'; btn.disabled=true; btn.innerHTML='✅ 已确认：信息可疑';
+            } else if (type === 'urgent' && !foundItems.urgent) {
+                msg = '✅ <b>制造恐慌！</b> “逾期放弃”是社交工程典型话术。';
+                correct = true; foundItems.urgent = true;
+                let btn = document.getElementById('btn-urgent'); btn.style.background='#2ecc71'; btn.disabled=true; btn.innerHTML='✅ 已确认：话术可疑';
+            } else if (type === 'link') {
+                msg = '🤔 链接可疑，但已包含在域名问题中，再找找其他角度。';
+            } else if (foundItems[type]) {
+                msg = '⏳ 已发现该疑点。';
+            }
+            if (correct) {
+                foundDefects++;
+                feedbackDiv.innerHTML = `<p class="success-text">${msg}</p><p>进度：${foundDefects}/${totalDefects}</p>`;
+                if (foundDefects === totalDefects) {
+                    feedbackDiv.innerHTML += `
+                        <div style="background:#1e3a1e; padding:10px; border-radius:8px; margin-top:8px;">
+                            🎉 识别成功！防范钓鱼邮件是数据安全第一道防线。<br>
+                            <button class="btn btn-success" onclick="goToLevel(2)">➡️ 进入第二关</button>
+                        </div>`;
+                }
+            } else {
+                feedbackDiv.innerHTML = `<p class="fail-text">${msg}</p>`;
+            }
+        }
+
+        // ==================== 第二关：加密的方格 ====================
+        function renderLevel2Intro() {
+            levelTitle.innerText = '第二关 · 加密的方格';
+            scene.innerHTML = `
+                <div style="width:100%; text-align:center;">
+                    <div style="font-size:3rem;">🔐</div>
+                    <div class="message-bubble">
+                        <p>需要传递情报 <b>“FIREWALL”</b> ，但线路被监听。你必须用<b>培根密码</b>加密后发出。</p>
+                        <p class="highlight">任务：将字母转换为培根密码（A=AAAAA, B=AAAAB ...）</p>
+                        <p style="font-size:0.8rem;">培根密码表：A=AAAAA, B=AAAAB, C=AAABA, D=AAABB, E=AABAA, F=AABAB, G=AABBA, H=AABBB, I=ABAAA, J=ABAAB, K=ABABA, L=ABABB, M=ABBAA, N=ABBAB, O=ABBBA, P=ABBBB, Q=BAAAA, R=BAAAB, S=BAABA, T=BAABB, U=BABAA, V=BABAB, W=BABBA, X=BABBB, Y=BBAAA, Z=BBAAB</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="renderLevel2Puzzle()">🔐 开始加密</button>
+                </div>
+            `;
+        }
+
+        function renderLevel2Puzzle() {
+            // 目标单词 F I R E W A L L
+            // 正确序列: F:AABAB, I:ABAAA, R:BAAAB, E:AABAA, W:BABBA, A:AAAAA, L:ABABB, L:ABABB
+            window.cipherAnswers = ['AABAB','ABAAA','BAAAB','AABAA','BABBA','AAAAA','ABABB','ABABB'];
+            window.cipherInputs = [];
+            scene.innerHTML = `
+                <div style="width:100%;">
+                    <h3>🔒 加密单词：<span style="color:#ffd966;">FIREWALL</span></h3>
+                    <div id="cipher-grid" style="display:flex; flex-wrap:wrap; gap:8px; margin:15px 0;"></div>
+                    <div id="cipher-feedback" class="feedback">请输入每个字母对应的5位培根密码（A/B）</div>
+                </div>
+            `;
+            const grid = document.getElementById('cipher-grid');
+            const letters = 'FIREWALL'.split('');
+            letters.forEach((letter, idx) => {
+                const box = document.createElement('div');
+                box.style.cssText = 'background:#1e2d5c; padding:10px; border-radius:8px; flex:1 0 20%; text-align:center;';
+                box.innerHTML = `<b style="color:#a5d6ff;">${letter}</b><br><input id="cipher-${idx}" type="text" maxlength="5" placeholder="ABABA" style="width:100%; margin-top:5px; padding:4px; background:#0a0e27; color:#ffd966; border:1px solid #4a5a9a; border-radius:4px; text-transform:uppercase;">`;
+                grid.appendChild(box);
+            });
+            const submitBtn = document.createElement('button');
+            submitBtn.className = 'btn btn-primary';
+            submitBtn.innerText = '📨 提交密文';
+            submitBtn.onclick = checkCipher;
+            grid.parentNode.insertBefore(submitBtn, document.getElementById('cipher-feedback'));
+        }
+
+        function checkCipher() {
+            let allCorrect = true;
+            for (let i=0; i<window.cipherAnswers.length; i++) {
+                const input = document.getElementById(`cipher-${i}`);
+                const val = input.value.toUpperCase().replace(/[^AB]/g, '');
+                if (val !== window.cipherAnswers[i]) {
+                    input.style.border = '2px solid #e74c3c';
+                    allCorrect = false;
+                } else {
+                    input.style.border = '2px solid #2ecc71';
+                }
+            }
+            const fb = document.getElementById('cipher-feedback');
+            if (allCorrect) {
+                fb.innerHTML = `<p class="success-text">✅ 加密成功！情报已安全发出。</p>
+                    <button class="btn btn-success" onclick="goToLevel(3)">➡️ 进入第三关</button>`;
+            } else {
+                fb.innerHTML = `<p class="fail-text">❌ 部分密码错误，请对照培根表修正（红色框）。</p>`;
+            }
+        }
+
+        // ==================== 第三关：沉默的窃听器 ====================
+        function renderLevel3Intro() {
+            levelTitle.innerText = '第三关 · 沉默的窃听器';
+            scene.innerHTML = `
+                <div style="width:100%; text-align:center;">
+                    <div style="font-size:3rem;">🔧</div>
+                    <div class="message-bubble">
+                        <p>关键网络节点被破坏，通信中断。需按<b>T568B 线序标准</b>恢复水晶头接线。</p>
+                        <p class="highlight">任务：将8根线按正确顺序排列。</p>
+                        <p style="font-size:0.8rem;">T568B顺序：橙白、橙、绿白、蓝、蓝白、绿、棕白、棕</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="renderLevel3Puzzle()">🔌 开始接线</button>
+                </div>
+            `;
+        }
+
+        function renderLevel3Puzzle() {
+            // 正确顺序
+            const correctOrder = ['橙白','橙','绿白','蓝','蓝白','绿','棕白','棕'];
+            // 打乱后的选项
+            const shuffled = [...correctOrder].sort(() => Math.random()-0.5);
+            window.selectedOrder = [];
+            window.correctOrder = correctOrder;
+            scene.innerHTML = `
+                <div style="width:100%;">
+                    <h3>🔌 选择线序（点击按钮按顺序添加）</h3>
+                    <div id="wire-options" style="display:flex; flex-wrap:wrap; gap:6px; margin:10px 0;"></div>
+                    <div style="background:#0e1430; padding:10px; border-radius:8px; margin:10px 0; min-height:40px;" id="selected-wires">当前顺序：无</div>
+                    <button class="btn btn-primary" onclick="checkWires()">✅ 确认接线</button>
+                    <button class="btn" onclick="resetWires()" style="background:#555;">🔄 重置</button>
+                    <div id="wire-feedback" class="feedback">点击色块选择顺序...</div>
+                </div>
+            `;
+            const optDiv = document.getElementById('wire-options');
+            shuffled.forEach(color => {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.style.cssText = 'width: auto; padding: 8px 12px; margin:2px;';
+                btn.innerText = color;
+                btn.onclick = () => selectWire(color, btn);
+                optDiv.appendChild(btn);
+            });
+        }
+
+        function selectWire(color, btn) {
+            if (window.selectedOrder.length >= 8) return;
+            window.selectedOrder.push(color);
+            btn.disabled = true;
+            btn.style.background = '#555';
+            updateWireDisplay();
+        }
+
+        function resetWires() {
+            window.selectedOrder = [];
+            // 重置所有按钮
+            document.querySelectorAll('#wire-options .btn').forEach(b => {
+                b.disabled = false;
+                b.style.background = '#2b4a7c';
+            });
+            updateWireDisplay();
+            document.getElementById('wire-feedback').innerHTML = '已重置。';
+        }
+
+        function updateWireDisplay() {
+            const display = document.getElementById('selected-wires');
+            display.innerHTML = '当前顺序：' + (window.selectedOrder.length ? window.selectedOrder.join(' → ') : '无');
+        }
+
+        function checkWires() {
+            const fb = document.getElementById('wire-feedback');
+            if (window.selectedOrder.length < 8) {
+                fb.innerHTML = '<p class="fail-text">请选择全部8根线。</p>'; return;
+            }
+            const correct = window.selectedOrder.every((v,i) => v === window.correctOrder[i]);
+            if (correct) {
+                fb.innerHTML = `<p class="success-text">✅ 线序正确！物理层通信已恢复，关键设施受保护。</p>
+                    <button class="btn btn-success" onclick="goToLevel(4)">➡️ 进入最终关</button>`;
+            } else {
+                fb.innerHTML = '<p class="fail-text">❌ 线序错误，请重置后重试（T568B：橙白、橙、绿白、蓝、蓝白、绿、棕白、棕）。</p>';
+            }
+        }
+
+        // ==================== 第四关：正义的审判 ====================
+        function renderLevel4Intro() {
+            levelTitle.innerText = '第四关 · 正义的审判';
+            scene.innerHTML = `
+                <div style="width:100%; text-align:center;">
+                    <div style="font-size:3rem;">⚖️</div>
+                    <div class="message-bubble">
+                        <p>已追踪到攻击者，需依据<b>《网络安全法》</b>对其行为定性并匹配法律条款。</p>
+                        <p class="highlight">任务：将违法行为与对应的法律条款正确连线。</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="renderLevel4Puzzle()">⚖️ 开始审判</button>
+                </div>
+            `;
+        }
+
+        function renderLevel4Puzzle() {
+            const cases = [
+                { id: 1, act: '非法入侵教育系统，窃取10万条学生信息', law: '违反第44条，非法获取个人信息' },
+                { id: 2, act: '向校内服务器植入挖矿木马，长期占用资源', law: '违反第27条，非法控制计算机系统' },
+                { id: 3, act: '篡改学校官网首页，发布虚假通知', law: '违反第12条，危害网络运行安全' }
+            ];
+            window.lawMatches = {1:null,2:null,3:null};
+            const lawOptions = [
+                '违反第44条，非法获取个人信息',
+                '违反第27条，非法控制计算机系统',
+                '违反第12条，危害网络运行安全'
+            ];
+            scene.innerHTML = `
+                <div style="width:100%;">
+                    <h3>⚖️ 违法行为与法律条款匹配</h3>
+                    <div id="cases-container"></div>
+                    <div id="law-feedback" class="feedback">请为每个违法行为选择正确的法律条款。</div>
+                    <button class="btn btn-primary" onclick="checkLawMatch()">✅ 提交判决</button>
+                </div>
+            `;
+            const container = document.getElementById('cases-container');
+            cases.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `<p><b>📌 ${c.act}</b></p>
+                    <select id="law-select-${c.id}" style="width:100%; padding:8px; background:#0a0e27; color:white; border:1px solid #4a5a9a; border-radius:6px;">
+                        <option value="">-- 请选择 --</option>
+                        ${lawOptions.map(l => `<option value="${l}">${l}</option>`).join('')}
+                    </select>`;
+                container.appendChild(div);
+            });
+        }
+
+        function checkLawMatch() {
+            const fb = document.getElementById('law-feedback');
+            const answers = {
+                1: '违反第44条，非法获取个人信息',
+                2: '违反第27条，非法控制计算机系统',
+                3: '违反第12条，危害网络运行安全'
+            };
+            let correct = true;
+            for (let i=1; i<=3; i++) {
+                const sel = document.getElementById(`law-select-${i}`);
+                if (sel.value !== answers[i]) {
+                    sel.style.border = '2px solid #e74c3c';
+                    correct = false;
+                } else {
+                    sel.style.border = '2px solid #2ecc71';
+                }
+            }
+            if (correct) {
+                fb.innerHTML = `<p class="success-text">✅ 判决正确！你依法守护了数字疆域。</p>
+                    <button class="btn btn-success" onclick="goToLevel(5)">🏁 完成挑战</button>`;
+            } else {
+                fb.innerHTML = `<p class="fail-text">❌ 有条款匹配错误，请修正（参考《网络安全法》核心条款）。</p>`;
+            }
+        }
+
+        // ==================== 通关总结 ====================
+        function renderFinal() {
+            levelTitle.innerText = '🏆 挑战完成';
+            scene.innerHTML = `
+                <div style="width:100%; text-align:center; padding:20px;">
+                    <div style="font-size:4rem;">🛡️</div>
+                    <h2 style="color:#2ecc71;">恭喜通关！</h2>
+                    <div class="card" style="background:#1e3a1e;">
+                        <p style="font-size:1.2rem;"><b>“铸网安防线、育实战英才、守数字疆域”</b></p>
+                        <p>你已成功完成：</p>
+                        <ul style="text-align:left; color:#ccc;">
+                            <li>✅ 识别钓鱼邮件（数据安全）</li>
+                            <li>✅ 加密传输情报（保密通信）</li>
+                            <li>✅ 恢复关键设施（物理安全）</li>
+                            <li>✅ 依法审判攻击（网络安全法）</li>
+                        </ul>
+                        <p class="highlight">密码：SOVEREIGN-DATA</p>
+                    </div>
+                    <button class="btn" onclick="goToLevel(1)" style="text-align:center; margin-top:10px;">🔄 重新体验</button>
+                </div>
+            `;
+        }
+
+        // 页面加载直接开始第一关
+        goToLevel(1);
+    </script>
+</body>
+</html>
